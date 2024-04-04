@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import styles from '../css/Room.module.css';
 
 function Room() {
   const [rooms, setRooms] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Odaları sunucudan çekmek için fetchRooms fonksiyonu
     const fetchRooms = async () => {
       const response = await fetch('http://localhost:3000/api/rooms', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Yetkilendirme gerekiyorsa
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
       const data = await response.json();
@@ -20,20 +20,17 @@ function Room() {
     fetchRooms();
   }, []);
 
-  const joinRoom = (room) => {
-    // Odaya katılma işlemi
-    // Örneğin, odanın ismini localStorage'a kaydedebilirsiniz
-    localStorage.setItem('currentRoom', room);
-    navigate('/chat'); // Chat sayfasına yönlendir
+  const joinRoom = (roomName) => {
+    navigate(`/chat/${roomName}`); // Oda ismi ile birlikte /chat sayfasına yönlendir
   };
 
   return (
-    <div>
+    <div className={styles.container}>
       <h2>Odalar</h2>
-      <ul>
+      <ul className={styles.roomList}>
         {rooms.map((room, index) => (
-          <li key={index} onClick={() => joinRoom(room)} style={{cursor: 'pointer'}}>
-            {room.name} {/* Sunucudan dönen odaların yapısına bağlı olarak düzenleyin */}
+          <li key={index} onClick={() => joinRoom(room.name)} className={styles.roomItem}>
+            {room.name}
           </li>
         ))}
       </ul>

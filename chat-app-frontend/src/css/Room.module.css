@@ -1,0 +1,19 @@
+.container {
+    padding: 20px;
+  }
+  
+  .roomList {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .roomItem {
+    cursor: pointer;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .roomItem:hover {
+    background-color: #f0f0f0;
+  }
+  

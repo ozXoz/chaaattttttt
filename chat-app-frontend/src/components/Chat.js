@@ -1,78 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import io from 'socket.io-client';
+import React, { useState, useEffect } from "react";
+import io from "socket.io-client";
+import { useParams } from "react-router-dom"; // useParams import edilir
+import styles from "../css/Chat.module.css";
 
-const socket = io.connect('http://localhost:3000');
+// Assuming your Socket.IO server is running on localhost:3000
+const socket = io.connect("http://localhost:3000");
 
 function Chat() {
-  const [room, setRoom] = useState('');
-  const [rooms, setRooms] = useState([]);
-  const [message, setMessage] = useState('');
+  const { roomName } = useParams(); // URL'den oda ismini alır
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [hasJoined, setHasJoined] = useState(false); // Kullanıcının odaya katılıp katılmadığını takip eden state
 
   useEffect(() => {
-    const fetchRooms = async () => {
-      const response = await fetch('http://localhost:3000/api/rooms', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const data = await response.json();
-      setRooms(data);
-    };
+    if (roomName) {
+      // Oda ismi varsa, odaya katıl
+      socket.emit("joinRoom", { room: roomName });
+    }
 
-    fetchRooms();
-
-    socket.on('message', (incomingMessage) => {
+    // Mesajları dinle
+    socket.on("message", (incomingMessage) => {
       setMessages((msgs) => [...msgs, incomingMessage]);
     });
-  }, []);
 
-  const joinRoom = () => {
-    if (room !== "") {
-      socket.emit('joinRoom', { room });
-      setHasJoined(true); // Kullanıcı odaya katıldığında bu değeri true olarak ayarla
-    }
-  };
+    // Clean up on component unmount
+    return () => {
+      socket.off("message");
+    };
+  }, [roomName]); // roomName değişikliğinde useEffect'i tetikle
 
   const sendMessage = (e) => {
-    e.preventDefault(); // Form submit işlemi sayfa yenilenmesini tetiklemesin diye
+    e.preventDefault();
     if (message !== "") {
-      socket.emit('chatMessage', { room, message });
-      setMessage('');
+      // Mesajı gönder
+      socket.emit("chatMessage", { room: roomName, message });
+      setMessage("");
     }
   };
 
   return (
-    <div>
-      <select onChange={(e) => setRoom(e.target.value)} value={room}>
-        <option value="">Select a Room</option>
-        {rooms.map((r, index) => (
-          <option key={index} value={r.name}>{r.name}</option>
+    <div className={styles.container}>
+      <h2>Room: {roomName}</h2> {/* Oda ismini başlık olarak göster */}
+      <form onSubmit={sendMessage} className={styles.sendMessageForm}>
+        <input
+          type="text"
+          placeholder="Type a message..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+        />
+        <button type="submit">Send</button>
+      </form>
+      <div className={styles.messageList}>
+        {messages.map((msg, index) => (
+          <div key={index} className={styles.messageItem}>{msg}</div>
         ))}
-      </select>
-      <button onClick={joinRoom}>Join Room</button>
-
-      {/* Kullanıcı bir odaya katıldıysa mesaj gönderme alanını göster */}
-      {hasJoined && (
-        <div>
-          <form onSubmit={sendMessage}>
-            <input
-              type="text"
-              placeholder="Message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
-            <button type="submit">Send Message</button>
-          </form>
-          
-          <div>
-            {messages.map((msg, index) => (
-              <div key={index}>{msg}</div>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
