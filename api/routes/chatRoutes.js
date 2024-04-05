@@ -7,7 +7,8 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 // Bir odadaki tüm mesajları getir
 router.get('/messages/:room', authenticateToken, async (req, res) => {
   try {
-    const messages = await Message.find({ room: req.params.room });
+    // Kullanıcı bilgilerini de içerecek şekilde mesajları getir
+    const messages = await Message.find({ room: req.params.room }).populate('user', 'username');
     res.json(messages);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -17,13 +18,18 @@ router.get('/messages/:room', authenticateToken, async (req, res) => {
 // Bir odaya yeni mesaj gönder
 router.post('/messages', authenticateToken, async (req, res) => {
   try {
-    const { room, username, message } = req.body;
-    const newMessage = new Message({ room, username, message });
+    const { room, user, message } = req.body;
+    const newMessage = new Message({ room, user, message });
     await newMessage.save();
-    res.status(201).json(newMessage);
+
+    // Populate 'user' field to include user details in the response
+    const savedMessage = await newMessage.populate('user', 'username email'); // Adjust fields as needed
+
+    res.status(201).json(savedMessage);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
+
 
 module.exports = router;

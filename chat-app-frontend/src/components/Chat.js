@@ -1,45 +1,52 @@
 import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
-import { useParams } from "react-router-dom"; // useParams import edilir
+import { useParams } from "react-router-dom";
 import styles from "../css/Chat.module.css";
 
-// Assuming your Socket.IO server is running on localhost:3000
 const socket = io.connect("http://localhost:3000");
 
 function Chat() {
-  const { roomName } = useParams(); // URL'den oda ismini alır
+  const { roomName } = useParams();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
   useEffect(() => {
     if (roomName) {
-      // Oda ismi varsa, odaya katıl
       socket.emit("joinRoom", { room: roomName });
     }
 
-    // Mesajları dinle
     socket.on("message", (incomingMessage) => {
       setMessages((msgs) => [...msgs, incomingMessage]);
     });
 
-    // Clean up on component unmount
     return () => {
       socket.off("message");
     };
-  }, [roomName]); // roomName değişikliğinde useEffect'i tetikle
+  }, [roomName]);
 
   const sendMessage = (e) => {
     e.preventDefault();
     if (message !== "") {
-      // Mesajı gönder
-      socket.emit("chatMessage", { room: roomName, message });
-      setMessage("");
+      // Correctly retrieve the user's ID from local storage
+      const userId = localStorage.getItem("userId"); // Getting userId from local storage
+      console.log(
+        "Retrieving userId from localStorage:",
+        localStorage.getItem("userId")
+      );
+
+      // Ensure userId is not null or undefined before attempting to send the message
+      if (userId) {
+        socket.emit("chatMessage", { room: roomName, userId, message });
+        setMessage("");
+      } else {
+        console.error("User ID is missing. Please log in again.");
+      }
     }
   };
 
   return (
     <div className={styles.container}>
-      <h2>Room: {roomName}</h2> {/* Oda ismini başlık olarak göster */}
+      <h2>Room: {roomName}</h2>
       <form onSubmit={sendMessage} className={styles.sendMessageForm}>
         <input
           type="text"
@@ -51,7 +58,11 @@ function Chat() {
       </form>
       <div className={styles.messageList}>
         {messages.map((msg, index) => (
-          <div key={index} className={styles.messageItem}>{msg}</div>
+          <div key={index} className={styles.messageItem}>
+            {/* Check if msg.user exists before trying to access msg.user.username */}
+            <strong>{msg.user ? msg.user.username : "Unknown"}:</strong>{" "}
+            {msg.message}
+          </div>
         ))}
       </div>
     </div>
